@@ -1,66 +1,42 @@
 const Article = require("./../models/Article");
 
 const getAllArticles = async (req, res) => {
-  const sorters = prepareSorters(req.body.sorter);
-  const page = preparePage(req.body.page);
-  let query = prepareQuery(req.body.filters, req.body.search);
-
+  const sorters = prepareSorters(req.query.sortBy, req.query.sortOrder);
+  const page = preparePage(req.query.index);
+  let query = prepareQuery(req.query.filter, req.query.search);
   try {
+    const totalArticles = await Article.find(query);
     const articles = await Article.find(query)
       .skip(page.index * page.size)
       .limit(page.size)
       .sort(sorters);
-    res.json(articles);
+    res.json({articles, total: totalArticles.length});
   } catch (error) {
     res.json({ message: error });
   }
 };
 
-const prepareSorters = (dtoInSorter) => {
+const prepareSorters = (sortBy, sortOrder) => {
   let sorters = {};
-  if (dtoInSorter && Object.keys(dtoInSorter).length) {
-    if (dtoInSorter.title) {
-      sorter.title = dtoInSorter.title;
-    }
-    if (dtoInSorter.tag) {
-      sorter.tag = dtoInSorter.tag;
-    }
-    if (dtoInSorter.author) {
-      sorter.author = dtoInSorter.author;
-    }
+  if (sortBy && sortOrder) {
+    sorters[sortBy] = sortOrder;
   }
   return sorters;
 };
 
-const prepareQuery = (dtoInFilter = {}, dtoInSearch = {}) => {
+const prepareQuery = (dtoInFilter = '', dtoInSearch = '') => {
   let query = {};
-  if (dtoInFilter.title) {
-    query.title = dtoInFilter.title;
+  if (dtoInFilter) {
+    query.tag = dtoInFilter;
   }
-  if (dtoInFilter.tag) {
-    query.tag = dtoInFilter.tag;
-  }
-  if (dtoInFilter.author) {
-    query.author = dtoInFilter.author;
-  }
-
-  if (dtoInSearch) {
+  if (Object.keys(dtoInSearch).length) {
     query = {
       $or: [
         {
-          title: {
-            $in: [query.title || [], new RegExp(dtoInSearch, "i")].flat(),
-          },
+          title: new RegExp(dtoInSearch, "i"),
         },
         {
-          tag: {
-            $in: [query.tag || [], new RegExp(dtoInSearch, "i")].flat(),
-          },
-        },
-        {
-          author: {
-            $in: [query.author || [], new RegExp(dtoInSearch, "i")].flat(),
-          },
+          author: new RegExp(dtoInSearch, "i"),
         },
       ],
     };
@@ -69,19 +45,14 @@ const prepareQuery = (dtoInFilter = {}, dtoInSearch = {}) => {
   return query;
 };
 
-const preparePage = (dtoInPage) => {
+const preparePage = (index) => {
   const page = {
     index: 0,
     size: 10,
   };
 
-  if (dtoInPage && Object.keys(dtoInPage).length) {
-    if (req.body.page.index) {
-      page.index = dtoInPage.index;
-    }
-    if (req.body.page.size) {
-      page.size = dtoInPage.size;
-    }
+  if(index) {
+    page.index = index;
   }
 
   return page;

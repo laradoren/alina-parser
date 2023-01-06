@@ -23,30 +23,33 @@ const PAGE_PUPPETER_OPTIONS = {
 async function getParsedArticles() {
   const articles = [];
   try {
+    //Set up puppeteer
     const browser = await puppeteer.launch(LAUNCH_PUPPETER_OPTIONS);
     const page = await browser.newPage();
     await page.goto(BASE_URI, PAGE_PUPPETER_OPTIONS);
     const content = await page.content();
     browser.close();
+    //Loading all contest
     const $ = cherio.load(content);
+    //Fing all article content
     $("article").each((i, header) => {
       let item = {};
-      item.image = $("img", header).attr("data-srcset");
+      //Preparing data
+      item.image = $("img", header).attr("srcset");
+      if(!item.image) {
+        item.image = $("img", header).attr("data-srcset");
+      }
       item.tag = $(".sc-1hjwdsc-0", header).text();
-      item.title = $(".sc-1pw4fyi-5", header).text();
+      item.title = $("h4", header).text();
       item.author = $(".sc-1mep9y1-0", header).text();
-      articles.push(item);
+      if(item.title && item.tag) {
+        //Push data to array if this data don`t already exist in articles
+        let articlesAlreadyExist = articles.find(article => article.title === item.title); 
+        if(!articlesAlreadyExist) {
+            articles.push(item);
+        }
+      }
     });
-    // articles.map(async (article) => {
-    //     let newArticle = await Article.create({
-    //         id: article.id,
-    //         image: article.image,
-    //         tag: article.tag,
-    //         title: article.title,
-    //         author: article.author
-    //     });
-    // });
-    //console.log(articles);
   } catch (e) {
     console.log(e);
   }
